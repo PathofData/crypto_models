@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from crypto_modules import fetch_ohlc, preprocess_ohlcv_data, predict_classifier
 
+BASE_DIR = '/usr/local/airflow/dags'
 
 FEATURES_PATH = 'saved_models/feature_list_v3.joblib'
 MODEL_PATH = 'saved_models/classification_model_BTC_v3.joblib'
@@ -22,15 +23,15 @@ if __name__=='__main__':
     archive_ts = last_ts - pd.Timedelta('3h')
     archive_data = data[data.index >= archive_ts]
     
-    if not os.path.isfile(RAW_DATA_FN):
-        archive_data.to_csv(RAW_DATA_FN)
+    if not os.path.isfile(os.path.join(BASE_DIR, RAW_DATA_FN)):
+        archive_data.to_csv(os.path.join(BASE_DIR, RAW_DATA_FN))
     else:
-        archive_data.to_csv(RAW_DATA_FN, mode='a', header=False)
+        archive_data.to_csv(os.path.join(BASE_DIR, RAW_DATA_FN), mode='a', header=False)
 
     data = preprocess_ohlcv_data(raw_data=data)
     prediction = predict_classifier(preprocessed_data=data,
-                                    feature_names_path=FEATURES_PATH,
-                                    model_path=MODEL_PATH)
+                                    feature_names_path=os.path.join(BASE_DIR, FEATURES_PATH),
+                                    model_path=os.path.join(BASE_DIR, MODEL_PATH))
 
     prediction_df = pd.DataFrame({
         'time': [pd.to_datetime('today')],
@@ -39,9 +40,9 @@ if __name__=='__main__':
     })
     prediction_df.set_index('time', inplace=True, drop=True)
 
-    if not os.path.isfile(PREDICTIONS_FN):
-        prediction_df.to_csv(PREDICTIONS_FN)
+    if not os.path.isfile(os.path.join(BASE_DIR, PREDICTIONS_FN)):
+        prediction_df.to_csv(os.path.join(BASE_DIR, PREDICTIONS_FN))
     else:
-        prediction_df.to_csv(PREDICTIONS_FN, mode='a', header=False)
+        prediction_df.to_csv(os.path.join(BASE_DIR, PREDICTIONS_FN), mode='a', header=False)
 
     print(f'{ts}: Model Prediction: {prediction[0]}.')

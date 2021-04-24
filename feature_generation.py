@@ -1,3 +1,4 @@
+import warnings
 from decimal import ROUND_HALF_UP, Decimal
 import math
 import traceback
@@ -132,8 +133,8 @@ class Preprocess:
                                      i+window_length+label_length : 
                                      subsample_factor].reset_index(drop=True)
                 if binary_delta_labels:
-                    y_data = (y_data[binary_delta_value].mean() - 
-                              x_data[binary_delta_value].mean() > 0).astype(int)
+                    y_data = (((y_data['High'] + y_data['Low'] + y_data['Close']) / 3).mean() 
+                              - ((x_data['High'] + x_data['Low'] + x_data['Close']) / 3).mean() > 0).astype(int)
 
                 x_dataset.append(x_data)
                 y_dataset.append(y_data)
@@ -267,10 +268,16 @@ class Preprocess:
     def obtain_arCoeff(self, signal) -> np.ndarray:
         arCoeff = np.array([])
         for col in signal.columns:
+            with warnings.catch_warnings():
+                warnings.filterwarnings('error')
             try:
                 val, _ = burg(signal[col], order=4)
+            except Warning:
+                val = [0.0] * 4
             except FloatingPointError:
-                val = [0.0]*4
+                val = [0.0] * 4
+            except RuntimeWarning:
+                val = [0.0] * 4
             arCoeff = np.hstack([arCoeff, val])
         return arCoeff
 

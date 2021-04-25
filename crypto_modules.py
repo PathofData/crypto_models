@@ -95,7 +95,7 @@ def preprocess_ohlcv_data(raw_data:pd.DataFrame,
                           data_freq:'str'='5min',
                           window_wd:int=288) -> pd.DataFrame:
     
-    np.seterr(invalid='raise')
+    # np.seterr(invalid='raise')
     
     raw_data = (raw_data
                 .resample(rule=data_freq)
@@ -103,38 +103,33 @@ def preprocess_ohlcv_data(raw_data:pd.DataFrame,
                 .interpolate(method='time', limit=None))
 
     raw_data = add_all_ta_features(raw_data, open="Open", high="High", low="Low", close="Close", volume="Volume", fillna=True)
-    
+
     cols_to_scale = load(scale_fn)
 
     for col in cols_to_scale:
         raw_data[col] = np.log(raw_data[col] + 1)
     
     X_data = raw_data.reset_index(drop=True)
-
-    try:
-        X_features, _, _ = create_features(data_raw=X_data,
-                                           fs=1,
-                                           segment_window=window_wd,
-                                           partitioning=False,
-                                           window_length=12*24,
-                                           label_length=12*4,
-                                           stride= 1,
-                                           subsample_factor= 1,
-                                           binary_delta_labels= True,
-                                           binary_delta_value= 'Close')
+    
+    X_features, _, _ = create_features(data_raw=X_data,
+                                       fs=1,
+                                       segment_window=window_wd,
+                                       partitioning=False,
+                                       window_length=12*24,
+                                       label_length=12*4,
+                                       stride= 1,
+                                       subsample_factor= 1,
+                                       binary_delta_labels= True,
+                                       binary_delta_value= 'Close')
         
-        if np.where(np.isnan(X_features))[0].shape[0] > 0:
-            print('Warning: Nan values encountered in features')
+    if np.where(np.isnan(X_features))[0].shape[0] > 0:
+        print('Warning: Nan values encountered in features')
 
-        feature_names = get_feature_names(raw_names=X_data.columns)
+    feature_names = get_feature_names(raw_names=X_data.columns)
 
-        X_features = pd.DataFrame(X_features, columns=feature_names)
+    X_features = pd.DataFrame(X_features, columns=feature_names)
 
-    except Exception as e:
-        print('Feature creation failed with:', str(e))
-        print(str(e.__class__.__name__))
-        print(str(e.__context__))
-        X_features = pd.DataFrame()
+    
     
     return X_features
 

@@ -125,7 +125,7 @@ class Preprocess:
         y_dataset = []
         weights = []
 
-        if len(signal) <= window_length:
+        if len(signal) <= window_length // 2:
             x_dataset = [signal]
             y_dataset = []
             weights = []

@@ -16,8 +16,8 @@ dag = DAG(
     'crypto_scheduler',
     default_args=default_args,
     description='Scheduler for crypto',
-    schedule_interval=timedelta(hours=3),
-    start_date=days_ago(2),
+    schedule_interval='0 */4 * * *',
+    start_date=days_ago(0),
     tags=['crypto'],
     catchup=False
 )

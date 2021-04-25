@@ -6,8 +6,9 @@ from crypto_modules import fetch_ohlc, preprocess_ohlcv_data, predict_classifier
 
 BASE_DIR = '/usr/local/airflow/dags'
 
-FEATURES_PATH = 'saved_models/feature_list_v3.joblib'
-MODEL_PATH = 'saved_models/classification_model_BTC_v3.joblib'
+SCALE_PATH = 'saved_models/column_scale_v1.joblib'
+FEATURES_PATH = 'saved_models/feature_list_v9.joblib'
+MODEL_PATH = 'saved_models/classification_model_BTC_v9.joblib'
 PREDICTIONS_FN = 'saved_models/saved_predictions.csv'
 RAW_DATA_FN = 'saved_models/BTC_raw.csv'
 
@@ -20,7 +21,7 @@ if __name__=='__main__':
     data, current_mean = fetch_ohlc()
     
     last_ts = data.index.max()
-    archive_ts = last_ts - pd.Timedelta('3h')
+    archive_ts = last_ts - pd.Timedelta('4h')
     archive_data = data[data.index >= archive_ts]
     
     if not os.path.isfile(os.path.join(BASE_DIR, RAW_DATA_FN)):
@@ -28,7 +29,7 @@ if __name__=='__main__':
     else:
         archive_data.to_csv(os.path.join(BASE_DIR, RAW_DATA_FN), mode='a', header=False)
 
-    data = preprocess_ohlcv_data(raw_data=data)
+    data = preprocess_ohlcv_data(raw_data=data, scale_fn=os.path.join(BASE_DIR, SCALE_PATH))
     prediction = predict_classifier(preprocessed_data=data,
                                     feature_names_path=os.path.join(BASE_DIR, FEATURES_PATH),
                                     model_path=os.path.join(BASE_DIR, MODEL_PATH))

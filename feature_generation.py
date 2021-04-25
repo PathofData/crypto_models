@@ -102,8 +102,9 @@ class Preprocess:
         stride: int = 1,
         subsample_factor: int = 1,
         binary_delta_labels: bool = True,
-        binary_delta_value: str = 'Close'
-    ) -> Tuple[List[pd.DataFrame], List[pd.DataFrame]]:
+        binary_delta_value: str = 'Close',
+        sample_weights: bool = True,
+    ) -> Tuple[List[pd.DataFrame], List[pd.DataFrame], List[pd.DataFrame]]:
         """Partition a time series signal into a train/test subset of rolling window segments
         of variable window size, test window size, stride and subsample factor. If specified
         the label subset is the outcome of the binary delta in the average value of test set
@@ -122,24 +123,34 @@ class Preprocess:
         """
         x_dataset = []
         y_dataset = []
+        weights = []
 
         if len(signal) <= window_length:
             x_dataset = [signal]
             y_dataset = []
+            weights = []
         else:
             for i in range(0, len(signal) - (window_length + label_length), stride):
                 x_data = signal.iloc[i : i+window_length : subsample_factor].reset_index(drop=True)
                 y_data = signal.iloc[i+window_length : 
                                      i+window_length+label_length : 
                                      subsample_factor].reset_index(drop=True)
+                
                 if binary_delta_labels:
-                    y_data = (((y_data['High'] + y_data['Low'] + y_data['Close']) / 3).mean() 
-                              - ((x_data['High'] + x_data['Low'] + x_data['Close']) / 3).mean() > 0).astype(int)
+                    y_mean = ((y_data['High'] + y_data['Low'] + y_data['Close']) / 3).mean()
+                    x_mean = ((x_data['High'] + x_data['Low'] + x_data['Close']) / 3).mean()
+                    y_data = (y_mean - x_mean > 0).astype(int)
+                else:
+                    y_mean = 0
+                    x_mean = 0
 
                 x_dataset.append(x_data)
                 y_dataset.append(y_data)
 
-        return x_dataset, y_dataset
+                sample_w = abs(y_mean - x_mean)
+                weights.append(sample_w)
+
+        return x_dataset, y_dataset, weights
 
     def separate_bias(self, signal: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
@@ -272,11 +283,11 @@ class Preprocess:
                 warnings.filterwarnings('error')
             try:
                 val, _ = burg(signal[col], order=4)
+            except RuntimeWarning:
+                val = [0.0] * 4
             except Warning:
                 val = [0.0] * 4
             except FloatingPointError:
-                val = [0.0] * 4
-            except RuntimeWarning:
                 val = [0.0] * 4
             arCoeff = np.hstack([arCoeff, val])
         return arCoeff
@@ -372,7 +383,7 @@ def create_features(data_raw: pd.DataFrame,
                     stride: int = 1,
                     subsample_factor: int = 1,
                     binary_delta_labels: bool = True,
-                    binary_delta_value: str = 'Close') -> Tuple[np.ndarray, np.ndarray]:
+                    binary_delta_value: str = 'Close') -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create features from raw data
     Args:
         data_raw (pd.DataFrame): Raw signals.
@@ -387,16 +398,17 @@ def create_features(data_raw: pd.DataFrame,
 
     # Sample signals in fixed-width sliding windows
     if partitioning:
-        tRawXYZ, labels = of.partition_time_series(signal=data_raw, 
-                                                   window_length=window_length, 
-                                                   label_length=label_length, 
-                                                   stride=stride, 
-                                                   subsample_factor=subsample_factor, 
-                                                   binary_delta_labels=binary_delta_labels, 
-                                                   binary_delta_value=binary_delta_value)
+        tRawXYZ, labels, weights = of.partition_time_series(signal=data_raw, 
+                                                            window_length=window_length, 
+                                                            label_length=label_length, 
+                                                            stride=stride, 
+                                                            subsample_factor=subsample_factor, 
+                                                            binary_delta_labels=binary_delta_labels, 
+                                                            binary_delta_value=binary_delta_value)
     else:
         tRawXYZ = of.segment_signal(data_raw, overlap_rate=0.5, res_type="dataframe")
         labels = []
+        weights = []
 
     # Separate signal into body and bias signal
     tBodyRawXYZ, tBiasRawXYZ = [], []
@@ -580,7 +592,7 @@ def create_features(data_raw: pd.DataFrame,
             
         features.append(feature_vector)
 
-    return np.array(features), np.array(labels)
+    return np.array(features), np.array(labels), np.array(weights)
 
 
 def get_feature_names(raw_names: List[str]) -> List[str]:

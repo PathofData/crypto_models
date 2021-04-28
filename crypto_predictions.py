@@ -16,7 +16,7 @@ RAW_DATA_FN = 'saved_models/BTC_raw.csv'
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Parser for crypto predictions. Arguments coming soon')
 
-    ts = pd.to_datetime('today').strftime("%Y-%m-%d %H:%M:%S")
+    ts = pd.Timestamp.today(tz='UTC').floor('5min').strftime("%Y-%m-%d %H:%M:%S")
 
     data, current_mean = fetch_ohlc()
     
@@ -35,7 +35,7 @@ if __name__=='__main__':
                                     model_path=os.path.join(BASE_DIR, MODEL_PATH))
 
     prediction_df = pd.DataFrame({
-        'time': [pd.to_datetime('today')],
+        'time': [pd.Timestamp.today(tz='UTC').floor('5min')],
         'current_mean': [current_mean],
         'prediction': [prediction[0]]
     })

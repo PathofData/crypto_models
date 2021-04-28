@@ -1,0 +1,7 @@
+ccxt==1.49.3
+numpy==1.18.5
+pandas==1.1.5
+scikit-learn==0.23.2
+scipy==1.4.1
+statsmodels==0.12.2
+ta==0.7.0

@@ -1,5 +1,3 @@
-# crypto_models
-
 # Docker
 
 ## Build
@@ -13,5 +11,8 @@ docker run -it --rm crypto_predictions
 ```
 
 ## Extra docker arguments
-### Write predictions to extrernal dir
-...
+### Load models from /external_saved_models dir
+
+```
+ docker run -it --rm -v $(pwd)/external_saved_models:/app/saved_models crypto_predictions
+```

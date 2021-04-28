@@ -11,8 +11,9 @@ docker run -it --rm crypto_predictions
 ```
 
 ## Extra docker arguments
+
 ### Load models from /external_saved_models dir
 
 ```
- docker run -it --rm -v $(pwd)/external_saved_models:/app/saved_models crypto_predictions
+ docker run -it --rm -v /external_saved_models:/app/saved_models crypto_predictions
 ```

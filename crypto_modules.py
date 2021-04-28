@@ -21,17 +21,21 @@ def fetch_ohlc(coin_name:'str'='BTC/USDT',
     until = date_until
     symbol = coin_name
 
-    until_ms = int(pd.to_datetime(until).timestamp() * 1000)
+    if date_until == 'today':
+        until_ms = int(pd.Timestamp.today(tz='UTC').floor('5min').timestamp() * 1000)
+    else:
+        until_ms = int(pd.to_datetime(until, utc=True).floor('5min').timestamp() * 1000)
 
     if not date_since:
-        since = (pd.to_datetime('today') - pd.Timedelta('24h')).strftime("%Y-%m-%d %H:%M:%S.%f")
+        since = (pd.Timestamp.today(tz='UTC').floor('5min') - 
+                 pd.Timedelta('24h')).strftime("%Y-%m-%d %H:%M:%S.%f")
     else:
         since = date_since
 
-    since_ms = int(pd.to_datetime(since).timestamp() * 1000)
+    since_ms = int(pd.to_datetime(since, utc=True).floor('5min').timestamp() * 1000)
 
-    date_interval_ms = int((pd.to_datetime(until) -
-                            pd.to_datetime(since)).total_seconds() * 1000)
+    date_interval_ms = int((pd.to_datetime(until, utc=True).floor('5min') -
+                            pd.to_datetime(since, utc=True).floor('5min')).total_seconds() * 1000)
 
     date_rate_ms = int(limit * pd.Timedelta(t_frame).total_seconds() * 1000)
 

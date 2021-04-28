@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from crypto_modules import fetch_ohlc, preprocess_ohlcv_data, predict_classifier
 
-BASE_DIR = '/usr/local/airflow/dags'
+#BASE_DIR = '/usr/local/airflow/dags'
+BASE_DIR = '.'
 
 SCALE_PATH = 'saved_models/column_scale_v1.joblib'
 FEATURES_PATH = 'saved_models/feature_list_v9.joblib'
@@ -16,7 +17,7 @@ RAW_DATA_FN = 'saved_models/BTC_raw.csv'
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Parser for crypto predictions. Arguments coming soon')
 
-    ts = pd.to_datetime('today').strftime("%Y-%m-%d %H:%M:%S")
+    ts = pd.Timestamp.today(tz='UTC').floor('5min').strftime("%Y-%m-%d %H:%M:%S")
 
     data, current_mean = fetch_ohlc()
     
@@ -35,7 +36,7 @@ if __name__=='__main__':
                                     model_path=os.path.join(BASE_DIR, MODEL_PATH))
 
     prediction_df = pd.DataFrame({
-        'time': [pd.to_datetime('today')],
+        'time': [pd.Timestamp.today(tz='UTC').floor('5min')],
         'current_mean': [current_mean],
         'prediction': [prediction[0]]
     })

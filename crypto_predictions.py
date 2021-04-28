@@ -11,7 +11,6 @@ FEATURES_PATH = 'saved_models/feature_list_v9.joblib'
 MODEL_PATH = 'saved_models/classification_model_BTC_v9.joblib'
 
 PREDICTIONS_FN = 'saved_predictions.csv'
-RAW_DATA_FN = 'BTC_raw.csv'
 #
 BASE_DIR = os.getenv('BASE_DIR', '/usr/local/airflow/dags')
 
@@ -68,6 +67,9 @@ def main():
         print(f"Cant find pair {args.pair} at the exchange list.")
         return
 
+    # Set filename for the raw 
+    RAW_DATA_FN = '{}_raw.csv'.format(args.pair.replace("/","_"))
+
     # Get end date
     if not args.end_date:
         until_ms = int(ts_now.timestamp() * 1000)
@@ -80,7 +82,8 @@ def main():
 
     # Fetch pair Data
     data, current_mean = fetch_ohlc(args.pair,until_ms,since_ms)
-    
+    print(data.head(1))
+    print(data.tail(1))
     #TODO Floor (5 min intervals) dataset here?
 
     last_ts = data.index.max()
@@ -102,6 +105,7 @@ def main():
 
     prediction_df = pd.DataFrame({
         'time': [pd.Timestamp.today(tz='UTC').floor('5min')],
+        'pair': [args.pair],
         'current_mean': [current_mean],
         'prediction': [prediction[0]]
     })

@@ -5,20 +5,24 @@ from ta import add_all_ta_features
 import pandas as pd
 import numpy as np
 from joblib import load
-from datetime import datetime
+import datetime
 import pytz
 from feature_generation import create_features, get_feature_names
 
-
-def str2UTCms(date_time_str):
+def str2UTC(date_time_str):
     """
     Get string in Format 'YYYY-MM-DD HH:MM:SS'
-    and return the respected ms time in UTC
+    and return it in UTC
     """
     date_obj = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
     date_obj_utc = date_obj.replace(tzinfo=pytz.utc)
-    return int(date_obj_utc.timestamp() * 1000)
+    return date_obj
 
+def floor_timestamp(datetime_obj, base):
+    """
+    Timestamp floor division to the latest base 
+    """
+    return datetime_obj.replace(minute=(datetime_obj.minute//base)*base,second=0,microsecond=0)
 
 def fetch_ohlc(coin_name:'str'='BTC/USDT',
                until_ms:int=None, 

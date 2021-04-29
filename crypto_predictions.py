@@ -2,25 +2,23 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-from crypto_modules import fetch_ohlc, preprocess_ohlcv_data, predict_classifier, str2UTCms
+from crypto_modules import fetch_ohlc, preprocess_ohlcv_data, predict_classifier, floor_timestamp
 import ccxt
 from datetime import datetime, timedelta
+import math
 
 SCALE_PATH = 'saved_models/column_scale_v1.joblib'
 FEATURES_PATH = 'saved_models/feature_list_v9.joblib'
 MODEL_PATH = 'saved_models/classification_model_BTC_v9.joblib'
-
 PREDICTIONS_FN = 'saved_predictions.csv'
-#
-BASE_DIR = os.getenv('BASE_DIR', '/usr/local/airflow/dags')
 
 
 def main():
 
-    ts_now = datetime.utcnow()
+    ts_now = datetime.now()
 
     parser = argparse.ArgumentParser(
-        description='Parser for crypto predictions. Arguments coming soon')
+        description='Parser for crypto predictions.')
 
     parser.add_argument(
         "--output",
@@ -55,6 +53,10 @@ def main():
 
     args = parser.parse_args()
 
+    # Check dirs
+    BASE_DIR = os.getenv('BASE_DIR', '.')
+    BASE_DIR = os.path.abspath(BASE_DIR)
+
     # Create output dirs
     os.makedirs(os.path.abspath(args.output), exist_ok=True)
     # Set Output Dir
@@ -70,11 +72,14 @@ def main():
     # Set filename for the raw 
     RAW_DATA_FN = '{}_raw.csv'.format(args.pair.replace("/","_"))
 
-    # Get end date
-    if not args.end_date:
-        until_ms = int(ts_now.timestamp() * 1000)
-    else:
-        until_ms = str2UTCms(args.end_date)
+    # Get end date (with a 5 minute lag)
+    if args.end_date:
+        ts_now = datetime.strptime(args.end_date, '%Y-%m-%d %H:%M:%S')
+
+    # floor timestamp the latest 5th minute
+    until_ms = floor_timestamp(ts_now,5)
+    # get in in ms format
+    until_ms = int(until_ms.timestamp() * 1000)
 
     # Get Start date
     # 86400000 No of ms per day
@@ -82,9 +87,9 @@ def main():
 
     # Fetch pair Data
     data, current_mean = fetch_ohlc(args.pair,until_ms,since_ms)
-    print(data.head(1))
-    print(data.tail(1))
-    #TODO Floor (5 min intervals) dataset here?
+    # For debug reasons
+    print(data.head(5))
+    print(data.tail(5))
 
     last_ts = data.index.max()
     archive_ts = last_ts - pd.Timedelta('4h')

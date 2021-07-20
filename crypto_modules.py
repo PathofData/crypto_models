@@ -5,37 +5,37 @@ from ta import add_all_ta_features
 import pandas as pd
 import numpy as np
 from joblib import load
-
+import datetime
+import pytz
 from feature_generation import create_features, get_feature_names
 
+def str2UTC(date_time_str):
+    """
+    Get string in Format 'YYYY-MM-DD HH:MM:SS'
+    and return it in UTC
+    """
+    date_obj = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+    date_obj_utc = date_obj.replace(tzinfo=pytz.utc)
+    return date_obj
+
+def floor_timestamp(datetime_obj, base):
+    """
+    Timestamp floor division to the latest base 
+    """
+    return datetime_obj.replace(minute=(datetime_obj.minute//base)*base,second=0,microsecond=0)
 
 def fetch_ohlc(coin_name:'str'='BTC/USDT',
-               date_until:'str'='today', 
-               date_since:'str'=None,
+               until_ms:int=None, 
+               since_ms:int=None,
                t_frame:'str'='5m',
                limit:int=288) -> pd.DataFrame:
 
     exchange = ccxt.binance()
     t_frame = t_frame
     limit = limit
-    until = date_until
     symbol = coin_name
-
-    if date_until == 'today':
-        until_ms = int(pd.Timestamp.today(tz='UTC').floor('5min').timestamp() * 1000)
-    else:
-        until_ms = int(pd.to_datetime(until, utc=True).floor('5min').timestamp() * 1000)
-
-    if not date_since:
-        since = (pd.Timestamp.today(tz='UTC').floor('5min') - 
-                 pd.Timedelta('24h')).strftime("%Y-%m-%d %H:%M:%S.%f")
-    else:
-        since = date_since
-
-    since_ms = int(pd.to_datetime(since, utc=True).floor('5min').timestamp() * 1000)
-
-    date_interval_ms = int((pd.to_datetime(until, utc=True).floor('5min') -
-                            pd.to_datetime(since, utc=True).floor('5min')).total_seconds() * 1000)
+    
+    date_interval_ms = until_ms - since_ms
 
     date_rate_ms = int(limit * pd.Timedelta(t_frame).total_seconds() * 1000)
 
